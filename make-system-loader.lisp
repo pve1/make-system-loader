@@ -17,15 +17,17 @@
                        :test #'string=
                        :from-end t)))
 
-(defun write-loader-file (system-name output-file &key main-function
-                                                       (if-exists :error))
-
+(defun check-main-function-arg (main-function)
   (when main-function
     (unless (or (symbolp main-function)
                 (and (listp main-function)
                      (= 2 (length main-function))))
-      (error (format nil "MAIN-FUNCTION should either be a symbol or a list of two string designators, i.e. (\"MYPACKAGE\" \"MAIN\")."))))
+      (error #.(format nil "MAIN-FUNCTION should either be a symbol ~~
+or a list of two string designators, i.e. (\"MYPACKAGE\" \"MAIN\").")))))
 
+(defun write-loader-file (system-name output-file &key main-function
+                                                       (if-exists :error))
+  (check-main-function-arg main-function)
   (let* ((deps (all-system-dependencies system-name))
          (all-systems-in-load-order (reverse (cons system-name deps)))
          (fasls (alexandria:mappend #'system-fasl-files all-systems-in-load-order)))
