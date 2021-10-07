@@ -26,21 +26,27 @@
 or a list of two string designators, i.e. (\"MYPACKAGE\" \"MAIN\").")))))
 
 (defun write-loader-file (system-name output-file &key main-function
+                                                       main-lisp-file
+                                                       initialization-form
                                                        (if-exists :error))
   (check-main-function-arg main-function)
   (let* ((deps (all-system-dependencies system-name))
          (all-systems-in-load-order (reverse (cons system-name deps)))
          (fasls (alexandria:mappend #'system-fasl-files all-systems-in-load-order)))
     (alexandria:with-output-to-file (out output-file :if-exists if-exists)
-      (dolist (fasl fasls)
-        (with-standard-io-syntax
-          (print `(load ,fasl) out)))
-      (when main-function
-        (let ((function-name (if (symbolp main-function)
-                                 (symbol-name main-function)
-                                 (string (first main-function))))
-              (function-package (if (symbolp main-function)
-                                    (package-name (symbol-package main-function))
-                                    (string (second main-function)))))
-          (print `(funcall (find-symbol ,function-name ,function-package))
-                 out))))))
+      (with-standard-io-syntax
+        (when initialization-form
+          (print initialization-form out))
+        (dolist (fasl fasls)
+          (print `(load ,fasl) out))
+        (when main-lisp-file
+          (print `(load ,(probe-file main-lisp-file)) out))
+        (when main-function
+          (let ((function-name (if (symbolp main-function)
+                                   (symbol-name main-function)
+                                   (string (second main-function))))
+                (function-package (if (symbolp main-function)
+                                      (package-name (symbol-package main-function))
+                                      (string (first main-function)))))
+            (print `(funcall (find-symbol ,function-name ,function-package))
+                   out)))))))
