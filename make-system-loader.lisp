@@ -10,8 +10,8 @@
 
 (defun all-system-dependencies (system-name)
   (labels ((dependencies (system-name)
-             (let* ((deps (asdf:system-depends-on
-                           (asdf:find-system system-name))))
+             (let ((deps (asdf:system-depends-on
+                          (asdf:find-system system-name))))
                (append deps (alexandria:mappend #'dependencies deps)))))
     (remove-duplicates (dependencies system-name)
                        :test #'string=
