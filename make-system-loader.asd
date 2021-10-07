@@ -7,4 +7,6 @@
   :version "0.0.1"
   :serial t
   :components ((:file "package")
-               (:file "make-system-loader")))
+               (:file "make-system-loader"))
+  :depends-on (#:asdf
+               #:alexandria))

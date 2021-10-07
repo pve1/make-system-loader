@@ -17,11 +17,28 @@
                        :test #'string=
                        :from-end t)))
 
-(defun write-loader-file (system-name output-file &key (if-exists :error))
+(defun write-loader-file (system-name output-file &key main-function
+                                                       (if-exists :error))
+
+  (when main-function
+    (unless (or (symbolp main-function)
+                (and (listp main-function)
+                     (= 2 (length main-function))))
+      (error (format nil "MAIN-FUNCTION should either be a symbol or a list of two string designators, i.e. (\"MYPACKAGE\" \"MAIN\")."))))
+
   (let* ((deps (all-system-dependencies system-name))
-         (all-systems (cons system-name deps))
-         (fasls (alexandria:mappend #'system-fasl-files all-systems)))
+         (all-systems-in-load-order (reverse (cons system-name deps)))
+         (fasls (alexandria:mappend #'system-fasl-files all-systems-in-load-order)))
     (alexandria:with-output-to-file (out output-file :if-exists if-exists)
-      (dolist (fasl (reverse fasls))
+      (dolist (fasl fasls)
         (with-standard-io-syntax
-          (print `(load ,fasl) out))))))
+          (print `(load ,fasl) out)))
+      (when main-function
+        (let ((function-name (if (symbolp main-function)
+                                 (symbol-name main-function)
+                                 (string (first main-function))))
+              (function-package (if (symbolp main-function)
+                                    (package-name (symbol-package main-function))
+                                    (string (second main-function)))))
+          (print `(funcall (find-symbol ,function-name ,function-package))
+                 out))))))
