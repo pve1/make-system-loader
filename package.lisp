@@ -1,4 +1,5 @@
 ;;;; package.lisp
 
 (defpackage #:make-system-loader
-  (:use #:cl))
+  (:use #:cl)
+  (:export #:write-loader-file))
