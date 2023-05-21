@@ -13,9 +13,7 @@
              (let ((deps (asdf:system-depends-on
                           (asdf:find-system system-name))))
                (append deps (alexandria:mappend #'dependencies deps)))))
-    (remove-duplicates (dependencies system-name)
-                       :test #'string=
-                       :from-end t)))
+    (remove-duplicates (dependencies system-name) :test #'string=)))
 
 (defun check-main-function-arg (main-function)
   (when main-function
@@ -30,13 +28,21 @@ or a list of two string designators, i.e. (\"MYPACKAGE\" \"MAIN\").")))))
                                                        initialization-form
                                                        (if-exists :error))
   (check-main-function-arg main-function)
+  (setf system-name (string-downcase system-name))
   (let* ((deps (all-system-dependencies system-name))
          (all-systems-in-load-order (reverse (cons system-name deps)))
-         (fasls (alexandria:mappend #'system-fasl-files all-systems-in-load-order)))
+         (fasls (alexandria:mappend #'system-fasl-files all-systems-in-load-order))
+         ;; "Require" systems like sb-posix.
+         (requires (remove-if-not
+                    (lambda (x)
+                      (typep (asdf:find-system x) 'asdf:require-system))
+                    all-systems-in-load-order)))
     (alexandria:with-output-to-file (out output-file :if-exists if-exists)
       (with-standard-io-syntax
         (when initialization-form
           (print initialization-form out))
+        (dolist (require requires)
+          (print `(require ,(string-upcase require)) out))
         (dolist (fasl fasls)
           (print `(load ,fasl) out))
         (when main-lisp-file
