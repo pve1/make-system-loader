@@ -10,9 +10,18 @@
 
 (defun all-system-dependencies (system-name)
   (labels ((dependencies (system-name)
-             (let ((deps (asdf:system-depends-on
-                          (asdf:find-system system-name))))
-               (append deps (alexandria:mappend #'dependencies deps)))))
+             (let* ((system (asdf:find-system system-name))
+                    (deps (asdf:system-depends-on system))
+                    (resolved-deps
+                      (alexandria:mappend
+                       (lambda (s)
+                         (let ((dep (asdf/find-component:resolve-dependency-spec
+                                     system s)))
+                           (when dep
+                             (list (asdf:component-name dep)))))
+                               deps)))
+               (append resolved-deps
+                       (alexandria:mappend #'dependencies resolved-deps)))))
     (remove-duplicates (dependencies system-name) :test #'string=)))
 
 (defun check-main-function-arg (main-function)
